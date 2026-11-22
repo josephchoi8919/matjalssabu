@@ -777,7 +777,8 @@ function koHint(t){if(/[가-힣]/.test(t))return t;const add=[];for(const[re,w]o
 {const _p=parseIntent;parseIntent=function(t){return _p(koHint(t))}}
 window.mjParse=t=>parseIntent(t);
 /* 방문 통계: 한 번 열 때마다 1회(같은 창에서 새로고침은 세지 않음), 개인정보 없이 언어만 */
-try{if(apiOn()&&!sessionStorage.getItem('mj_hit')){sessionStorage.setItem('mj_hit','1');api({action:'hit',lang:LANG}).catch(()=>{})}}catch(e){}
+try{if(/^#(admin|nocount)$/.test(location.hash))localStorage.setItem('mj_nohit','1');if(location.hash==='#count')localStorage.removeItem('mj_nohit')}catch(e){}
+try{if(apiOn()&&!localStorage.getItem('mj_nohit')&&!sessionStorage.getItem('mj_hit')){sessionStorage.setItem('mj_hit','1');api({action:'hit',lang:LANG}).catch(()=>{})}}catch(e){}
 /* 한자·가나 지명 */
 const HANJI=[[/首尔|首爾|ソウル/,'서울'],[/釜山|プサン/,'부산'],[/大邱|テグ/,'대구'],[/仁川|インチョン/,'인천'],[/光州|クァンジュ/,'광주'],[/大田|テジョン/,'대전'],[/蔚山|ウルサン/,'울산'],
 [/順天|顺天|スンチョン/,'순천시'],[/麗水|丽水|ヨス/,'여수시'],[/木浦|モッポ/,'목포시'],[/全州|チョンジュ/,'전주시'],[/群山|クンサン/,'군산시'],[/慶州|庆州|キョンジュ/,'경주시'],[/安東|安东|アンドン/,'안동시'],[/浦項|浦项|ポハン/,'포항시'],
