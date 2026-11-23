@@ -383,8 +383,10 @@ async function loadTour(){const k=st.sido+'|'+st.sgg;if(TL[k]!==undefined||!apiO
   try{const j=await Promise.race([api({action:'tourlist',sido:st.sido,sgg:st.sgg===ALL?'전체':st.sgg}),new Promise(r=>setTimeout(()=>r(null),15000))]);TL[k]=(j&&j.ok&&Array.isArray(j.items))?j.items:null}catch(e){TL[k]=null}
   if(TL[k]===null)setTimeout(()=>{if(TL[k]===null)delete TL[k]},60000);
   if(st.sido+'|'+st.sgg===k)render()}
-function tourRecs(){const v=TL[st.sido+'|'+st.sgg];if(!Array.isArray(v)||st.bud)return [];const known=new Set(pool().map(r=>String(r.name).replace(/\s/g,'')));
-  return v.filter(x=>x&&x.name&&!known.has(String(x.name).replace(/\s/g,''))).map(x=>({name:x.name,sido:st.sido,sgg:st.sgg,dong:'',cat:tcat(x),addr:x.addr||'',tel:x.tel||'',menu:[],ev:[['kto','']],kto:true}))
+function tourRecsFor(sido,sgg){const v=TL[sido+'|'+sgg];if(!Array.isArray(v))return [];const known=new Set(pool().map(r=>String(r.name).replace(/\s/g,'')));
+  return v.filter(x=>x&&x.name&&!known.has(String(x.name).replace(/\s/g,''))).map(x=>({name:x.name,sido,sgg,dong:'',cat:tcat(x),addr:x.addr||'',tel:x.tel||'',menu:[],ev:[['kto','']],kto:true}))}
+async function waitTour(sido,sgg,ms){const k=sido+'|'+sgg;if(TL[k]===undefined&&st.sido+'|'+st.sgg===k)loadTour();const t0=Date.now();while(TL[k]==='busy'&&Date.now()-t0<ms)await new Promise(r=>setTimeout(r,250));return Array.isArray(TL[k])}
+function tourRecs(){if(st.bud)return [];return tourRecsFor(st.sido,st.sgg)
     .filter(r=>st.cat==='전체'||r.cat===st.cat).sort((a,b)=>((a.cat==='카페')-(b.cat==='카페'))||(rot(a.name)-rot(b.name)))}
 function render(){
   seg('#topn',[3,5,10],'top',v=>LG()?LG().n(v):v+'곳');seg('#src',SRC,'src',tr);seg('#who',WHO,'who',tr);quick();kit();
@@ -671,12 +673,14 @@ function parseIntent(t){const o={weather:null,mood:null,who:null,cats:[],budget:
   const pl=pool();for(const w of words){const s=w.replace(/(에서|에|로|으로|쪽|근처|부근)$/,'');
     const hitD=pl.find(r=>r.dong&&r.dong.replace(/동$|읍$|면$/,'')===s.replace(/동$|읍$|면$/,'')&&r.dong.startsWith(s.slice(0,2)));if(hitD){o.place={sido:hitD.sido,sgg:hitD.sgg,dong:hitD.dong};break}
     const sd=REG.find(r=>s.length>=2&&(r.p===s||r.s===s||r.s.startsWith(s)&&s.length>=3||(r===JG&&s==='광주')));if(sd){o.place={sido:sd.s,sgg:ALL,dong:'',pre:(sd===JG&&s==='광주')?'광주 ':''};break}
-    for(const r of REG){const g=r.l.find(g=>g!==ALL&&(g.replace(/(시|군|구)$/,'')===s.replace(/(시|군|구)$/,'')||g===s));if(g&&s.length>=2){o.place={sido:r.s,sgg:g,dong:''};break}}if(o.place)break}
+    for(const r of REG){const g=r.l.find(g=>g!==ALL&&(g.replace(/(시|군|구)$/,'')===s.replace(/(시|군|구)$/,'')||g.replace(/(시|군|구)$/,'')===s||g===s));if(g&&s.length>=2){o.place={sido:r.s,sgg:g,dong:''};break}}if(o.place)break}
   return o}
 function aiCandidates(it){const want=new Set([...it.cats,...((it.weather&&PREF[it.weather.k])||[]),...((it.mood&&PREF[it.mood.k])||[])]);
   const reg=it.place||{sido:st.sido,sgg:st.sgg,dong:st.dong};
   const inR=r=>r.sido===reg.sido&&(!reg.pre||r.sgg.startsWith(reg.pre))&&(reg.sgg===ALL||r.sgg===reg.sgg)&&(!reg.dong||r.dong===reg.dong);
-  let base=pool().filter(inR);let wide=false;if(base.length<3){base=pool().filter(r=>r.sido===reg.sido);wide=true}
+  let base=pool().filter(inR);let wide=false;
+  if(base.length<8&&reg.sgg!==ALL){const bud0=it.budget||st.bud;base=base.concat(tourRecsFor(reg.sido,reg.sgg).filter(r=>!bud0))}
+  if(base.length<3){base=pool().filter(r=>r.sido===reg.sido);wide=true}
   const bud=it.budget||st.bud;
   const sc=base.map(r=>{let s=score(r),why=[];
     if(it.cats.includes(r.cat)){s+=35;why.push('찾는 메뉴 종류')}else if(want.has(r.cat)){s+=20;why.push((it.weather||it.mood).why)}
@@ -690,7 +694,7 @@ function aiCandidates(it){const want=new Set([...it.cats,...((it.weather&&PREF[i
 function ruleText(it,c){const bits=[];if(it.weather)bits.push(`날씨(${it.weather.k})엔 ${it.weather.why}`);if(it.mood)bits.push(`기분(${it.mood.k})엔 ${it.mood.why}`);if(it.who)bits.push(`${it.who} 동행`);if(it.budget)bits.push(`1인 ${it.budget.toLocaleString('ko-KR')}원 이하`);if(it.cats.length)bits.push(it.cats.join('·'));if(it.local)bits.push('노포·로컬 맛집 우선');if(it.chef)bits.push('셰프 식당 우선');
   return `이해한 조건: ${bits.length?bits.join(', '):'특별한 조건 없음'} · 지역: ${qN(c.reg.sido,c.reg.sgg)}${c.reg.dong?' '+c.reg.dong:''}${c.wide?' (이 지역은 아직 담은 곳이 적어 같은 시·도까지 넓혔어요)':''}${c.miss?` · 이 지역엔 ${it.cats.join('·')} 등록이 아직 없어 비슷한 조건의 곳을 골랐어요`:''}`}
 const NEG=/불친절|맛없|최악|별로|위생|비추|거르|가지 ?마|실망|형편없|불결|더럽|바가지|비싸기만|보다 (못|낫)|보다 맛있/;
-function aiCands(c){return c.list.slice(0,15).map((x,i)=>({id:i,name:x.r.name,area:qN(x.r.sido,x.r.sgg)+(x.r.dong?' '+x.r.dong:''),cat:x.r.cat,menu:(x.r.menu||[]).map(m=>m[0]+(m[1]?`(${m[1]}원)`:'')).join(', '),evidence:[...new Set((x.r.ev||[]).map(e=>(W[e[0]]||{}).n))].join(', '),tip:x.r.tip||''}))}
+function aiCands(c){return c.list.slice(0,15).map((x,i)=>({id:i,name:x.r.name,area:qN(x.r.sido,x.r.sgg)+(x.r.dong?' '+x.r.dong:''),cat:x.r.cat,menu:(x.r.menu||[]).map(m=>m[0]+(m[1]?`(${m[1]}원)`:'')).join(', '),evidence:x.r.kto?'한국관광공사 등록 음식점(메뉴·가격·소개 자료 없음: 이름·종류·지역 외 사실을 단정하지 말 것)':[...new Set((x.r.ev||[]).map(e=>(W[e[0]]||{}).n))].join(', '),tip:x.r.tip||''}))}
 function aiPrompt(text,it,c){const cand=c.list.map((x,i)=>({id:i,name:x.r.name,area:qN(x.r.sido,x.r.sgg)+(x.r.dong?' '+x.r.dong:''),cat:x.r.cat,menu:(x.r.menu||[]).map(m=>m[0]+(m[1]?`(${m[1]}원)`:'')).join(', '),evidence:[...new Set((x.r.ev||[]).map(e=>(W[e[0]]||{}).n))].join(', '),tip:x.r.tip||''}));
   return `너는 지역 맛집을 근거로 골라 주는 '맛잘러 최사부'다. 아래 이용자 요청과 후보 식당 목록만 보고, 후보 중에서 최대 3곳을 골라 추천하라. 목록에 없는 식당이나 사실(가격, 방송 출연 등)을 지어내지 마라. 메뉴는 후보의 메뉴 중에서 고르라. 가장 중요한 원칙: 외식업 사장님께 어떤 피해도 가지 않게 하라. 어떤 식당도 부정적으로 표현하거나 다른 식당과 비교해 깎아내리지 말고, 맛 점수·순위·평가를 매기지 말며, 위생·친절·가격에 대한 단정적 판단을 하지 마라. 추천 이유는 그 식당의 장점과 이용자 상황에 맞는 점만 따뜻하고 존중하는 말투로 적어라.
 이용자 요청: "${text}"
@@ -706,20 +710,22 @@ async function genAI(text,it,c){const prompt=aiPrompt(text,it,c);
   const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':k},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:0.6}})});
   const j=await res.json();if(!res.ok)throw new Error(res.status===404?'모델 이름을 찾지 못했습니다. AI 설정에서 모델 이름을 바꿔 보세요.':res.status===429?'오늘 무료 사용량을 넘었습니다.':'Gemini 오류: '+(j?.error?.message||res.status));
   const t=j?.candidates?.[0]?.content?.parts?.map(p=>p.text).join('')||'[]';return{engine:'Gemini',r:JSON.parse(t.replace(/^```json|```$/g,''))}}
-function aiCard(x,menu,reason,i){const r=x.r;return `<article class="card ai"><div class="rank" aria-hidden="true">🍽</div><div><h3>${esc(r.name)}</h3><p class="meta">${esc(qN(r.sido,r.sgg))}${r.dong?' '+esc(r.dong):''} · ${esc(r.cat)}</p>
+function aiCard(x,menu,reason,i){const r=x.r;return `<article class="card ai"><div class="rank" aria-hidden="true">🍽</div><div><h3>${esc(r.name)}</h3><p class="meta">${esc(qN(r.sido,r.sgg))}${r.dong?' '+esc(r.dong):''} · ${esc(r.cat)}</p>${r.kto?`<div class="stk"><span class="st kto">${lgSafe()?LG().kto:'한국관광공사 등록 음식점'}</span></div>`:''}
   <p class="aiwhy"><b>${esc(menu||((r.menu||[])[0]||[''])[0])}</b> ${esc(reason)}</p>
   <div class="links">${lgSafe()?`<a href="https://www.google.com/maps/search/${q(qN(r.sido,r.sgg)+' '+r.name)}" target="_blank" rel="noopener">📍 ${LG().gmap}</a><a href="https://translate.google.com/?sl=ko&tl=${({en:'en',zh:'zh-CN',vi:'vi',ja:'ja'})[LANG]}&text=${q(r.name+'\n'+(r.menu||[]).map(m=>m[0]).join('\n'))}&op=translate" target="_blank" rel="noopener">🌐 ${LG().tr}</a>`:`<a href="https://map.naver.com/p/search/${q(qN(r.sido,r.sgg)+' '+r.name)}" target="_blank" rel="noopener">네이버지도·리뷰</a><a href="https://search.naver.com/search.naver?query=${q(qN(r.sido,r.sgg)+' '+r.name+' 캐치테이블 테이블링')}" target="_blank" rel="noopener">웨이팅·예약 확인</a>`}</div></div></article>`}
 let aiBusy=false;
 async function runAI(){const text=$('#aiq').value.trim();if(!text){$('#aimsg').textContent='오늘 기분, 날씨, 누구랑 가는지 한 줄로 적어 주세요.';return}if(aiBusy)return;aiBusy=true;$('#aigo').disabled=true;
-  const it=parseIntent(text);const c=aiCandidates(it);
+  const it=parseIntent(text);
   if(it.place){st.sido=it.place.sido;fillSido();st.sgg=it.place.sgg;fillSgg();st.dong=it.place.dong;$('#dong').value=st.dong;render()}
+  {const rg=it.place||st;if(rg.sgg!==ALL)try{await waitTour(rg.sido,rg.sgg,8000)}catch(e){}}
+  const c=aiCandidates(it);
   $('#aiint').textContent=lgSafe()?'':ruleText(it,c);
   if(!c.list.length){$('#aiout').innerHTML='';$('#aimsg').textContent='이 지역은 맛잘러가 아직 식당을 담지 못했어요. 맛있는 식당이 없다는 뜻은 아니니, 아시는 곳이 있으면 제보해 주세요.';aiBusy=false;$('#aigo').disabled=false;return}
   const fallback=()=>c.list.slice(0,3).map((x,i)=>aiCard(x,'',(lgSafe()?LG().aifb:(x.why.length?[...new Set(x.why)].join(' · ')+' 조건에 잘 맞아요.':'공개된 소개 자료가 있는 곳이에요.')),i)).join('');
   $('#aiout').innerHTML=fallback();$('#aimsg').textContent=lgSafe()?LG().aiwait:'최사부 추천 엔진으로 먼저 골랐습니다. 생성형 AI가 이유를 다듬는 중입니다.';
   try{const g=await genAI(text,it,c);
     if(g&&Array.isArray(g.r)){const picks=g.r.filter(p=>Number.isInteger(+p.id)&&c.list[+p.id]).slice(0,3);
-      if(picks.length){$('#aiout').innerHTML=picks.map((p,i)=>{const x=c.list[+p.id];let why=String(p.reason||'').slice(0,240);if(!why||NEG.test(why))why=(lgSafe()?LG().aifb:(x.why.length?[...new Set(x.why)].join(' · ')+' 조건에 잘 맞아요.':'공개된 소개 자료가 있는 곳이에요.'));return aiCard(x,String(p.menu||'').slice(0,40),why,i)}).join('');$('#aimsg').textContent=lgSafe()?LG().aiok:`${g.engine} AI가 등록된 근거 데이터 안에서만 골랐습니다. 영업 여부·가격은 방문 전 확인하세요.`}}
+      if(picks.length){$('#aiout').innerHTML=picks.map((p,i)=>{const x=c.list[+p.id];let why=String(p.reason||'').slice(0,240);if(!why||NEG.test(why))why=(lgSafe()?LG().aifb:(x.why.length?[...new Set(x.why)].join(' · ')+' 조건에 잘 맞아요.':'공개된 소개 자료가 있는 곳이에요.'));return aiCard(x,x.r.kto?'':String(p.menu||'').slice(0,40),why,i)}).join('');$('#aimsg').textContent=lgSafe()?LG().aiok:`${g.engine} AI가 등록된 근거 데이터 안에서만 골랐습니다. 영업 여부·가격은 방문 전 확인하세요.`}}
     else $('#aimsg').textContent=lgSafe()?LG().aifail:'최사부 추천 엔진 결과입니다. (생성형 AI에 연결하지 못했습니다.)'}
   catch(e){$('#aimsg').textContent=(e instanceof TypeError?'생성형 AI 서버에 접속하지 못해':e.message+' ·')+' 최사부 추천 엔진 결과를 보여 드립니다.'}
   aiBusy=false;$('#aigo').disabled=false}
