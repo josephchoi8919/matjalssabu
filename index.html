@@ -49,7 +49,7 @@ select,input,textarea{width:100%;font:16px "Gothic A1";padding:10px;border:1px s
 .meta{color:var(--sub);font-size:14px;margin:2px 0 8px}
 .stk{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .st{font-size:13px;font-weight:700;border-radius:6px;padding:3px 8px;background:var(--chip);color:var(--ink);text-decoration:none;white-space:nowrap}
-.st.tv{background:var(--red);color:#fff}.st.br{background:#1546c2;color:#fff}.st.wt{background:var(--yolk);color:#1c1a17}.st.me{background:var(--nori);color:#fff}.st.cf{background:#111;color:#fff}.st.hd{background:#6b3fa0;color:#fff}.st.sb{background:#8a5a12;color:#fff}.st.lc{background:#0f766e;color:#fff}.st.pd{background:transparent;border:1px dashed var(--sub);color:var(--sub)}
+.st.tv{background:var(--red);color:#fff}.st.br{background:#1546c2;color:#fff}.st.wt{background:var(--yolk);color:#1c1a17}.st.me{background:var(--nori);color:#fff}.st.cf{background:#111;color:#fff}.st.hd{background:#6b3fa0;color:#fff}.st.sb{background:#8a5a12;color:#fff}.st.lc{background:#0f766e;color:#fff}.st.kto{background:#e8f1fb;color:#1d4f91;border:1px solid #b9d1ee}.st.pd{background:transparent;border:1px dashed var(--sub);color:var(--sub)}
 .gem{border-left:5px solid #0f766e}
 .repbox{margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px}.repbox .links button[aria-pressed=true]{background:var(--ink);color:var(--card)}
 .cand{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 12px;margin:0 0 6px;font:500 14px 'Gothic A1';cursor:pointer;color:var(--ink)}.cand b{display:block;font-size:15px}.cand small{color:var(--sub)}
@@ -315,7 +315,7 @@ let SHARED=[],DB=null,UID=null;
 const hk=r=>String(r.sgg)+'|'+String(r.name).replace(/\s/g,'');
 const pool=()=>pool0().filter(r=>r.mine||!HIDDEN.has(hk(r)));
 const pool0=()=>{const mineKeys=new Set(MINE.map(r=>r.sgg+'|'+r.name));const bk=new Set(BASE.map(r=>r.sgg+'|'+r.name));return [...BASE,...APPROVED.filter(r=>!bk.has(r.sgg+'|'+r.name)&&!mineKeys.has(r.sgg+'|'+r.name)),...MINE.map(r=>({...r,user:true,mine:true})),...SHARED.filter(r=>!mineKeys.has(r.sgg+'|'+r.name))]};
-const st={sido:J,sgg:SC,dong:'조례동',top:5,cat:'전체',bud:0,who:'상관없음',src:'전체',pick:null,menuPick:null};
+const st={sido:J,sgg:SC,dong:'조례동',top:10,cat:'전체',bud:0,who:'상관없음',src:'전체',pick:null,menuPick:null};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const won=n=>n==null?'가격 확인':n.toLocaleString('ko-KR')+'원';
 const score=r=>Math.min(100,[...new Set((r.ev||[]).map(e=>e[0]))].reduce((a,k)=>a+(W[k]?W[k].p:0),0));
@@ -343,7 +343,7 @@ const sorted=l=>l.sort((a,b)=>rot(a.name+(a.sgg||''))-rot(b.name+(b.sgg||'')));
 const filtered=()=>sorted(pool().filter(r=>inRegion(r)&&cond(r)));
 function card(r,i){
   const ok=!st.bud||minP(r)!=null;const seen=new Set();
-  const stk=(r.ev||[]).filter(([k])=>!seen.has(k)&&seen.add(k)).map(([k,u])=>{const w=W[k]||{n:k,c:'',p:0};const cls=r.user?'me':w.c;const lab=esc(w.n)+(r.user?(r.pending?' (검수 대기)':' (이용자 확인)'):'')+'';return /^https?:/.test(u||'')?`<a class="st ${cls}" href="${esc(u)}" target="_blank" rel="noopener" title="출처 보기">${lab}</a>`:`<span class="st ${cls}">${lab}</span>`}).join('');
+  const stk=(r.ev||[]).filter(([k])=>!seen.has(k)&&seen.add(k)).map(([k,u])=>{const w=W[k]||(k==='kto'?{n:LG()?LG().kto:'한국관광공사 등록 음식점',c:'kto',p:0}:{n:k,c:'',p:0});const cls=r.user?'me':w.c;const lab=esc(w.n)+(r.user?(r.pending?' (검수 대기)':' (이용자 확인)'):'')+'';return /^https?:/.test(u||'')?`<a class="st ${cls}" href="${esc(u)}" target="_blank" rel="noopener" title="출처 보기">${lab}</a>`:`<span class="st ${cls}">${lab}</span>`}).join('');
   const area=qN(r.sido,r.sgg)+' '+r.name;
   return `<article class="card${st.pick===r.name?' pick':''}${gem(r)?' gem':''}">
   <div class="rank" aria-hidden="true">${st.pick===r.name?'★':'🍽'}</div>
@@ -376,14 +376,29 @@ function kit(){const c=st.cat==='전체'?'맛집':st.cat,p=place(),N='https://se
 function empty(){const near=sorted(pool().filter(r=>inRegion(r,true)&&r.sgg!==st.sgg&&cond(r))).slice(0,st.top);
   if(LG())return `<div class="kit" style="margin:0"><p>${LG().none}</p></div>`+(near.length?near.map(card).join(''):'');
   return `<div class="kit" style="margin:0"><h3 style="margin:0 0 6px">${esc(place())}에 등록된 ${st.cat==='전체'?'':esc(st.cat)+' '}식당을 아직 담지 못했습니다</h3><p class="tip">맛있는 식당이 없다는 뜻이 아니라, 맛잘러가 아직 소개 자료를 모으지 못한 지역이라는 뜻입니다. 아시는 맛있는 식당이 있다면 아래 '숨은 로컬 맛집 제보하기'로 알려 주세요.</p>${st.menuPick?`<p class="live" style="margin-top:10px">오늘은 ${esc(st.menuPick)} 어때요?</p>`:''}</div>`+(near.length?`<h2 style="margin:18px 0 0">같은 ${esc(qN(st.sido,ALL))} 안 다른 시·군·구 추천</h2>`+near.map(card).join(''):'')}
+/* ── 관광공사 등록 음식점으로 빈자리 채우기(서버가 관광공사 키로 대신 조회) ── */
+const TL={};const TCAT={'A05020100':'한식','A05020200':'양식','A05020300':'일식','A05020400':'중식','A05020900':'카페'};
+const tcat=x=>{const l=String(x.lcls||'');return /^FD01/.test(l)?'한식':/^FD0201/.test(l)?'중식':/^FD0202/.test(l)?'일식':/^FD0203/.test(l)?'양식':/^FD04/.test(l)?'치킨·주점':/^FD05/.test(l)?'카페':(TCAT[x.cat3]||'음식점')};
+async function loadTour(){const k=st.sido+'|'+st.sgg;if(TL[k]!==undefined||!apiOn())return;TL[k]='busy';
+  try{const j=await Promise.race([api({action:'tourlist',sido:st.sido,sgg:st.sgg===ALL?'전체':st.sgg}),new Promise(r=>setTimeout(()=>r(null),15000))]);TL[k]=(j&&j.ok&&Array.isArray(j.items))?j.items:null}catch(e){TL[k]=null}
+  if(TL[k]===null)setTimeout(()=>{if(TL[k]===null)delete TL[k]},60000);
+  if(st.sido+'|'+st.sgg===k)render()}
+function tourRecs(){const v=TL[st.sido+'|'+st.sgg];if(!Array.isArray(v)||st.bud)return [];const known=new Set(pool().map(r=>String(r.name).replace(/\s/g,'')));
+  return v.filter(x=>x&&x.name&&!known.has(String(x.name).replace(/\s/g,''))).map(x=>({name:x.name,sido:st.sido,sgg:st.sgg,dong:'',cat:tcat(x),addr:x.addr||'',tel:x.tel||'',menu:[],ev:[['kto','']],kto:true}))
+    .filter(r=>st.cat==='전체'||r.cat===st.cat).sort((a,b)=>((a.cat==='카페')-(b.cat==='카페'))||(rot(a.name)-rot(b.name)))}
 function render(){
   seg('#topn',[3,5,10],'top',v=>LG()?LG().n(v):v+'곳');seg('#src',SRC,'src',tr);seg('#who',WHO,'who',tr);quick();kit();
   let list=filtered();
   if(st.pick){const p=list.find(r=>r.name===st.pick);if(p)list=[p,...list.filter(r=>r!==p)]}
   const shown=list.slice(0,st.top);
-  $('#title').textContent=LG()?LG().title(romaP(place()),shown.length||st.top):`${place()} ${st.cat==='전체'?'':st.cat+' '}맛집 ${shown.length||st.top}곳`;
-  $('#count').textContent=LG()?LG().count(list.length,shown.length):`조건에 맞는 곳 ${list.length}곳 중 ${shown.length}곳 · 순서는 날마다 바뀌며 순위가 아닙니다. 맛잘러는 식당을 평가하지 않습니다.`;
-  $('#cards').innerHTML=shown.length?shown.map(card).join(''):empty();
+  let extra=[];const tk=st.sido+'|'+st.sgg;
+  if(shown.length<st.top&&!st.pick){if(TL[tk]===undefined)loadTour();extra=tourRecs().slice(0,st.top-shown.length)}
+  const nAll=shown.length+extra.length;
+  $('#title').textContent=LG()?LG().title(romaP(place()),nAll||st.top):`${place()} ${st.cat==='전체'?'':st.cat+' '}맛집 ${nAll||st.top}곳`;
+  $('#count').textContent=(LG()?LG().count(list.length,shown.length):`조건에 맞는 곳 ${list.length}곳 중 ${shown.length}곳 · 순서는 날마다 바뀌며 순위가 아닙니다. 맛잘러는 식당을 평가하지 않습니다.`)+(extra.length?(LG()?' + '+LG().tlc(extra.length):` · 한국관광공사 등록 음식점 ${extra.length}곳 함께 표시`):'');
+  const busy=TL[tk]==='busy'&&shown.length<st.top?`<p class="tip">${LG()?LG().tlload:'한국관광공사 등록 음식점을 불러오는 중입니다…'}</p>`:'';
+  const ext=extra.length?`<div class="kit tlh" style="margin:14px 0 4px"><b>${LG()?LG().tlh:'한국관광공사에 등록된 음식점도 함께 보여 드립니다'}</b><p class="tip" style="margin:4px 0 0">${LG()?LG().tlnote:'공공데이터(한국관광공사 TourAPI)에 등록된 음식점입니다. 맛잘러가 평가하거나 추천 순위를 매긴 것이 아니며, 영업 여부·메뉴·가격은 방문 전 확인해 주세요.'}</p></div>`+extra.map(card).join(''):'';
+  $('#cards').innerHTML=(shown.length||extra.length)?shown.map(card).join('')+ext+busy:(busy||empty());
 }
 function liveScore(){const ks=[...document.querySelectorAll('#evs input:checked')].map(i=>i.value);$('#live').textContent=ks.length?`근거 ${ks.length}개 선택`:''}
 const msg=t=>{$('#msg').textContent=t};
@@ -724,25 +739,25 @@ en:{alldong:'All neighbourhoods',aifb:'Matches what you asked for.',aifail:'Show
 fg:"<b>Welcome to Korea!</b> Restaurant names and menus are shown in Korean, as they appear at the restaurant. Tap <b>Google Maps</b> to find the way, or <b>Translate</b> to read the menu in your language. Prices are in Korean won (₩) per dish. Opening hours and prices can change, so please check before you visit.<br><b>Please note:</b> this app does not rank or rate restaurants. The order changes every day and is not a ranking. These are friendly suggestions, not the only right answers — there are many more delicious places that are not listed here yet.",
 go:"Search",dong:"Neighbourhood (optional, Korean)",f_h2:"Filters",f_top:"How many",f_cat:"What to eat",f_bud:"Budget per person",f_who:"Who with",f_src:"Type",rand:"Surprise me (random pick)",randTip:"Picks one restaurant at random from your current region and filters.",ai_h2:"Ask the AI",ai_tip:"Tell us your mood, the weather, who you are with and your budget in one line — in any language.",ai_go:"Get AI picks",
 title:(p,n)=>`${p} · ${n} delicious restaurants`,count:(m,n)=>`Showing ${n} of ${m} · The order changes daily and is not a ranking. We do not rate restaurants.`,
-gmap:"Google Maps",naver:"Naver Map",tr:"Translate",price:"Ask for prices",n:v=>v+' places',none:"We have not added restaurants for this area yet. This does not mean there are no delicious restaurants here.",
+kto:"Korea Tourism Organization listing",tlh:"Restaurants listed by the Korea Tourism Organization",tlnote:"These are listed in public data (KTO TourAPI). Matjaller does not rate or rank them; please check opening hours, menu and prices before you go.",tlload:"Loading Korea Tourism Organization listings…",tlc:n=>n+" KTO-listed places",gmap:"Google Maps",naver:"Naver Map",tr:"Translate",price:"Ask for prices",n:v=>v+' places',none:"We have not added restaurants for this area yet. This does not mean there are no delicious restaurants here.",
 t:{'전체 시·군·구':'All districts','전체':'All','한식':'Korean','고기·구이':'BBQ & grilled meat','국밥·탕':'Rice soup & stew','면·냉면':'Noodles & cold noodles','해산물':'Seafood','치킨·주점':'Chicken & pub','중식':'Chinese','일식':'Japanese','양식':'Western','프랑스식':'French','디저트·베이커리':'Dessert & bakery','카페':'Café','상관없음':'Any','혼밥':'Alone','연인':'Date','친구':'Friends','가족':'Family','부모님':'Parents','회식':'Group','방송·인증':'TV & guides','최사부·로컬':'Local picks','1만 원 이하':'Under ₩10,000','1만 5천 원 이하':'Under ₩15,000','2만 원 이하':'Under ₩20,000','3만 원 이하':'Under ₩30,000','5만 원 이하':'Under ₩50,000','10만 원 이하':'Under ₩100,000'}},
 zh:{alldong:'全部街道',aifb:'符合您的需求。',aifail:'显示快速推荐。（暂时无法连接 AI。）',aiok:'AI 只从有公开依据的餐厅中挑选。前往前请确认营业时间和价格。',aiwait:'先显示快速推荐，AI 正在整理推荐理由…',pop:'热门地区：',full:'翻译整个页面',lead:"<b>“맛잘러”</b>的意思是“懂美食的人”。本应用介绍由顾客、电视节目和美食指南推荐的美味餐厅，让每一位在韩国旅行的人无论走到哪里都能吃到一顿好饭。选择地区即可查看餐厅的招牌菜和价格。",
 fg:"<b>欢迎来到韩国！</b>餐厅名称和菜单按店内实际使用的韩文显示。点击<b>Google 地图</b>查看路线，点击<b>翻译</b>可用您的语言阅读菜单。价格为每道菜的韩元（₩）价格。营业时间和价格可能会变动，请在前往前确认。<br><b>温馨提示：</b>本应用不对餐厅进行排名或评分。显示顺序每天变化，并非排名。这些只是参考建议，并非唯一答案——还有很多美味的餐厅尚未收录。",
 go:"搜索",dong:"街道（可选，韩文）",f_h2:"筛选条件",f_top:"显示数量",f_cat:"想吃什么",f_bud:"人均预算",f_who:"和谁一起",f_src:"类型",rand:"随机推荐一家",randTip:"从当前地区和条件中随机挑选一家餐厅。",ai_h2:"问问 AI",ai_tip:"用一句话说说心情、天气、同行的人和预算，任何语言都可以。",ai_go:"AI 推荐",
 title:(p,n)=>`${p} · ${n} 家美味餐厅`,count:(m,n)=>`共 ${m} 家，显示 ${n} 家 · 顺序每天变化，并非排名。我们不对餐厅评分。`,
-gmap:"Google 地图",naver:"Naver 地图",tr:"翻译",price:"价格请向店家确认",n:v=>v+' 家',none:"本地区暂未收录餐厅。这并不代表这里没有美味的餐厅。",
+kto:"韩国观光公社登记餐厅",tlh:"同时显示韩国观光公社登记的餐厅",tlnote:"以下为公共数据（韩国观光公社 TourAPI）中登记的餐厅。Matjaller 不对其评价或排名，请在前往前确认营业时间、菜单和价格。",tlload:"正在加载韩国观光公社登记的餐厅…",tlc:n=>n+" 家观光公社登记餐厅",gmap:"Google 地图",naver:"Naver 地图",tr:"翻译",price:"价格请向店家确认",n:v=>v+' 家',none:"本地区暂未收录餐厅。这并不代表这里没有美味的餐厅。",
 t:{'전체 시·군·구':'全部区县','전체':'全部','한식':'韩餐','고기·구이':'烤肉','국밥·탕':'汤饭·炖汤','면·냉면':'面·冷面','해산물':'海鲜','치킨·주점':'炸鸡·酒馆','중식':'中餐','일식':'日料','양식':'西餐','프랑스식':'法餐','디저트·베이커리':'甜点·烘焙','카페':'咖啡馆','상관없음':'不限','혼밥':'一个人','연인':'情侣','친구':'朋友','가족':'家人','부모님':'父母','회식':'聚餐','방송·인증':'电视·指南','최사부·로컬':'本地推荐','1만 원 이하':'₩10,000 以下','1만 5천 원 이하':'₩15,000 以下','2만 원 이하':'₩20,000 以下','3만 원 이하':'₩30,000 以下','5만 원 이하':'₩50,000 以下','10만 원 이하':'₩100,000 以下'}},
 vi:{alldong:'Tất cả phường/xã',aifb:'Phù hợp với yêu cầu của bạn.',aifail:'Đang hiển thị gợi ý nhanh. (Tạm thời chưa kết nối được AI.)',aiok:'AI chỉ chọn từ các nhà hàng có nguồn công khai. Vui lòng kiểm tra giờ mở cửa và giá trước khi đến.',aiwait:'Đang hiển thị gợi ý nhanh. AI đang viết lý do gợi ý…',pop:'Khu vực nhiều quán:',full:'dịch toàn bộ trang',lead:"<b>“Matjaller”</b> nghĩa là “người sành ăn”. Ứng dụng giới thiệu những nhà hàng ngon được thực khách, chương trình truyền hình và cẩm nang ẩm thực gợi ý, để bất kỳ ai du lịch Hàn Quốc cũng có một bữa ăn ngon ở mọi nơi. Hãy chọn khu vực để xem món đặc trưng và giá.",
 fg:"<b>Chào mừng bạn đến Hàn Quốc!</b> Tên nhà hàng và thực đơn được hiển thị bằng tiếng Hàn như tại quán. Nhấn <b>Google Maps</b> để xem đường đi, hoặc <b>Dịch</b> để đọc thực đơn bằng ngôn ngữ của bạn. Giá tính bằng won Hàn Quốc (₩) cho mỗi món. Giờ mở cửa và giá có thể thay đổi, vui lòng kiểm tra trước khi đến.<br><b>Lưu ý:</b> ứng dụng không xếp hạng hay chấm điểm nhà hàng. Thứ tự thay đổi mỗi ngày và không phải là bảng xếp hạng. Đây chỉ là gợi ý tham khảo, không phải đáp án duy nhất — còn rất nhiều quán ngon chưa có trong danh sách.",
 go:"Tìm",dong:"Phường/xã (tùy chọn, tiếng Hàn)",f_h2:"Bộ lọc",f_top:"Số lượng",f_cat:"Muốn ăn gì",f_bud:"Ngân sách mỗi người",f_who:"Đi cùng ai",f_src:"Loại",rand:"Chọn ngẫu nhiên",randTip:"Chọn ngẫu nhiên một nhà hàng trong khu vực và bộ lọc hiện tại.",ai_h2:"Hỏi AI",ai_tip:"Hãy nói tâm trạng, thời tiết, người đi cùng và ngân sách trong một câu — bằng bất kỳ ngôn ngữ nào.",ai_go:"Gợi ý từ AI",
 title:(p,n)=>`${p} · ${n} nhà hàng ngon`,count:(m,n)=>`Hiển thị ${n}/${m} · Thứ tự thay đổi mỗi ngày, không phải xếp hạng. Chúng tôi không chấm điểm nhà hàng.`,
-gmap:"Google Maps",naver:"Naver Map",tr:"Dịch",price:"Hỏi giá tại quán",n:v=>v+' quán',none:"Chúng tôi chưa thêm nhà hàng cho khu vực này. Điều đó không có nghĩa là ở đây không có quán ngon.",
+kto:"Nhà hàng đăng ký với Tổng cục Du lịch Hàn Quốc",tlh:"Hiển thị thêm nhà hàng đăng ký với Tổng cục Du lịch Hàn Quốc",tlnote:"Đây là nhà hàng trong dữ liệu công (KTO TourAPI). Matjaller không đánh giá hay xếp hạng; vui lòng kiểm tra giờ mở cửa, thực đơn và giá trước khi đến.",tlload:"Đang tải danh sách của Tổng cục Du lịch Hàn Quốc…",tlc:n=>n+" quán đăng ký KTO",gmap:"Google Maps",naver:"Naver Map",tr:"Dịch",price:"Hỏi giá tại quán",n:v=>v+' quán',none:"Chúng tôi chưa thêm nhà hàng cho khu vực này. Điều đó không có nghĩa là ở đây không có quán ngon.",
 t:{'전체 시·군·구':'Tất cả quận/huyện','전체':'Tất cả','한식':'Món Hàn','고기·구이':'Thịt nướng','국밥·탕':'Canh cơm·món hầm','면·냉면':'Mì·mì lạnh','해산물':'Hải sản','치킨·주점':'Gà rán·quán nhậu','중식':'Món Trung','일식':'Món Nhật','양식':'Món Âu','프랑스식':'Món Pháp','디저트·베이커리':'Tráng miệng·bánh','카페':'Cà phê','상관없음':'Bất kỳ','혼밥':'Một mình','연인':'Người yêu','친구':'Bạn bè','가족':'Gia đình','부모님':'Bố mẹ','회식':'Nhóm đông','방송·인증':'TV·cẩm nang','최사부·로컬':'Gợi ý địa phương','1만 원 이하':'Dưới ₩10.000','1만 5천 원 이하':'Dưới ₩15.000','2만 원 이하':'Dưới ₩20.000','3만 원 이하':'Dưới ₩30.000','5만 원 이하':'Dưới ₩50.000','10만 원 이하':'Dưới ₩100.000'}},
 ja:{alldong:'全ての洞・邑・面',aifb:'ご希望に合うお店です。',aifail:'簡易のおすすめを表示しています。（現在AIに接続できません。）',aiok:'AIは公開された根拠のあるお店の中からだけ選びました。営業時間と価格はお出かけ前にご確認ください。',aiwait:'まず簡易のおすすめを表示しています。AIが理由をまとめています…',pop:'掲載の多い地域：',full:'ページ全体を翻訳',lead:"<b>「マッチャロ（맛잘러）」</b>は「味をよく知る人」という意味です。お客さま・テレビ番組・グルメガイドが紹介したおいしいお店をお届けし、韓国を旅するすべての方が、どこへ行ってもおいしい食事に出会えるようにするアプリです。地域を選ぶと、看板メニューと価格がわかります。",
 fg:"<b>韓国へようこそ！</b>店名とメニューはお店で使われている韓国語で表示しています。<b>Google マップ</b>で道順を、<b>翻訳</b>でメニューをご自身の言語で確認できます。価格は1品あたりの韓国ウォン（₩）です。営業時間や価格は変わることがありますので、お出かけ前にご確認ください。<br><b>ご注意：</b>このアプリはお店に順位や点数をつけません。表示順は毎日変わり、ランキングではありません。あくまで参考のご提案で、唯一の正解ではありません。まだ載っていないおいしいお店もたくさんあります。",
 go:"検索",dong:"洞・邑・面（任意、韓国語）",f_h2:"条件を選ぶ",f_top:"表示件数",f_cat:"食べたいもの",f_bud:"1人あたりの予算",f_who:"誰と行く",f_src:"種類",rand:"ランダムで1軒",randTip:"いまの地域と条件の中からランダムに1軒選びます。",ai_h2:"AIに聞く",ai_tip:"気分・天気・誰と行くか・予算を一文で書いてください。どの言語でも大丈夫です。",ai_go:"AIのおすすめ",
 title:(p,n)=>`${p}・おいしいお店 ${n}軒`,count:(m,n)=>`${m}軒中 ${n}軒を表示・順番は毎日変わり、ランキングではありません。お店を評価していません。`,
-gmap:"Google マップ",naver:"Naver 地図",tr:"翻訳",price:"価格はお店で確認",n:v=>v+'軒',none:"この地域のお店はまだ掲載していません。おいしいお店がないという意味ではありません。",
+kto:"韓国観光公社 登録店",tlh:"韓国観光公社に登録されたお店もあわせて表示します",tlnote:"公共データ（韓国観光公社 TourAPI）に登録されたお店です。Matjallerは評価や順位付けをしていません。営業時間・メニュー・価格はお出かけ前にご確認ください。",tlload:"韓国観光公社の登録店を読み込んでいます…",tlc:n=>"観光公社登録店 "+n+"軒",gmap:"Google マップ",naver:"Naver 地図",tr:"翻訳",price:"価格はお店で確認",n:v=>v+'軒',none:"この地域のお店はまだ掲載していません。おいしいお店がないという意味ではありません。",
 t:{'전체 시·군·구':'全エリア','전체':'すべて','한식':'韓国料理','고기·구이':'焼肉','국밥·탕':'クッパ・鍋','면·냉면':'麺・冷麺','해산물':'海鮮','치킨·주점':'チキン・居酒屋','중식':'中華','일식':'和食','양식':'洋食','프랑스식':'フレンチ','디저트·베이커리':'デザート・ベーカリー','카페':'カフェ','상관없음':'こだわらない','혼밥':'ひとり','연인':'恋人','친구':'友人','가족':'家族','부모님':'両親','회식':'団体','방송·인증':'テレビ・ガイド','최사부·로컬':'地元のおすすめ','1만 원 이하':'₩10,000以下','1만 5천 원 이하':'₩15,000以下','2만 원 이하':'₩20,000以下','3만 원 이하':'₩30,000以下','5만 원 이하':'₩50,000以下','10만 원 이하':'₩100,000以下'}}
 };
 let LANG=(()=>{try{return localStorage.getItem('mj_lang')||'ko'}catch(e){return 'ko'}})();
